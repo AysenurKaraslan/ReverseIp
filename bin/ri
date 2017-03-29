@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require 'ReverseIp'
+require 'ruby-progressbar'
+require 'json'
+
+
+print 'Target: '
+# target = gets.chomp
+target = 'muhammetdilmac.com.tr'
+
+puts "Your target: #{target}"
+
+all_services = ReverseIp::Sites.constants.map(&ReverseIp::Sites.method(:const_get))
+
+progressbar = ProgressBar.create(title: 'Services', starting_at: 0, total: all_services.count + 1,
+                                 format: '%a |%b >> %i| %p%% %t')
+progressbar.log 'Attack Starting...'
+
+results = {}
+
+results['target'] = target
+results['services'] = {}
+services = results['services']
+
+api_keys = {'ViewDNS' => '8c44c297b1c66b1cbac465433961cb6c8c99a766'}
+
+all_services.each do |service|
+
+  service_name = service.to_s.split('::')[-1]
+  if api_keys.include?(service_name)
+    my_class = service.new(target, api_keys[service_name])
+  else
+    my_class = service.new(target)
+  end
+  services[service_name] = my_class.get_results
+  progressbar.increment
+  progressbar.log "#{service_name} responded."
+
+end
+
+progressbar.log 'Exporting results'
+progressbar.increment
+
+puts JSON.pretty_generate(results)
